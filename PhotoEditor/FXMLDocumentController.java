@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
@@ -21,6 +22,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -44,6 +46,8 @@ public class FXMLDocumentController implements Initializable {
     ObservableList<String> options = 
     FXCollections.observableArrayList("Negative","Brighter","Darker","Grey");
     @FXML private Button convert;
+    @FXML private Slider slider;
+    @FXML private Label val;
     @FXML private Button save;
     private String imagePath;
     private Image img = null,negImg = null;
@@ -66,20 +70,43 @@ public class FXMLDocumentController implements Initializable {
         chooseImage.setVisible(true);
         box.setVisible(true);
         convert.setVisible(true);
+        if (box.getSelectionModel().getSelectedItem() == null ||
+                box.getSelectionModel().getSelectedItem().equals("Negative") || 
+                box.getSelectionModel().getSelectedItem().equals("Grey")) {
+            val.setVisible(false);
+            slider.setVisible(false);
+        } else {
+            if (box.getSelectionModel().getSelectedItem().equals("Brighter")) {
+                slider.setMin(1.0);
+                slider.setMax(2.0);
+                slider.setValue(1.0);
+            } else {
+                slider.setMin(0.1);
+                slider.setMax(1.0);
+                slider.setValue(0.1);
+            }
+            val.setVisible(true);
+            slider.setVisible(true);
+            }
         save.setVisible(true);
         photo1.setImage(null);
         photo2.setImage(null);
+        path1 = null;
+        path2 = null;
     }
     
     @FXML
     private void displayJoin(ActionEvent event) {
         collectPhotos.setVisible(true);
         join.setVisible(true);
+        imagePath = null;
         firstImage.setImage(null);
         newImage.setImage(null);
         chooseImage.setVisible(false);
         box.setVisible(false);
         convert.setVisible(false);
+        val.setVisible(false);
+        slider.setVisible(false);
         save.setVisible(false);
         type.setVisible(true);
         jpeg.setVisible(true);
@@ -182,6 +209,8 @@ public class FXMLDocumentController implements Initializable {
     
     @FXML
     private void convert(ActionEvent event) {
+        if (imagePath == null) return;
+        
         PixelReader pixelReader = negImg.getPixelReader();
         WritableImage wImage = new WritableImage((int)img.getWidth(),(int)img.getHeight());
         PixelWriter pixelWriter = wImage.getPixelWriter();
@@ -214,10 +243,16 @@ public class FXMLDocumentController implements Initializable {
                         pixelWriter.setColor(w,h,new Color(r,g,b,1.0));
                         break;
                     case "Brighter":
-                        pixelWriter.setColor(w,h,color.brighter());
+                        r = Math.min(1.0,slider.getValue()*color.getRed());
+                        g = Math.min(1.0,slider.getValue()*color.getGreen());
+                        b = Math.min(1.0,slider.getValue()*color.getBlue());
+                        pixelWriter.setColor(w,h,new Color(r,g,b,1.0));
                         break;
                     case "Darker":
-                        pixelWriter.setColor(w,h,color.darker());
+                        r = Math.max(0.0,slider.getValue()*color.getRed());
+                        g = Math.max(0.0,slider.getValue()*color.getGreen());
+                        b = Math.max(0.0,slider.getValue()*color.getBlue());
+                        pixelWriter.setColor(w,h,new Color(r,g,b,1.0));
                         break;
                     case "Grey":
                         pixelWriter.setColor(w,h,color.grayscale());
@@ -263,6 +298,35 @@ public class FXMLDocumentController implements Initializable {
         jpeg.setToggleGroup(group);
         png.setToggleGroup(group);
         jpeg.setSelected(true);
+        
+        box.getSelectionModel().selectedItemProperty().addListener( (options, oldValue, newValue) -> {
+            if (box.getSelectionModel().getSelectedItem().equals("Negative") || 
+                    box.getSelectionModel().getSelectedItem().equals("Grey")) {
+                val.setVisible(false);
+                slider.setVisible(false);
+            } else {
+                if (box.getSelectionModel().getSelectedItem().equals("Brighter")) {
+                    slider.setMin(1.0);
+                    slider.setMax(2.0);
+                    slider.setValue(1.0);
+                } else {
+                    slider.setMin(0.1);
+                    slider.setMax(1.0);
+                    slider.setValue(0.1);
+                }
+                val.setVisible(true);
+                slider.setVisible(true);
+            }
+        }
+        ); 
+        
+        slider.setValue(1.0);
+        val.setText("1.0");
+        slider.valueProperty().addListener((ObservableValue<? extends Number> ov,
+            Number old_val, Number new_val) -> {
+                val.setText((new_val + "").substring(0,3));
+        });
+
     }    
     
 }
